@@ -85,6 +85,7 @@ def index():
     sql = ''
     dot_src = None
     error = None
+    current_tree_cost = None
 
     if request.method == 'POST':
         sql = request.form.get('sql', '')
@@ -100,10 +101,11 @@ def index():
             estimate_cost(current_tree, table_stats)
 
             dot_src = visualize_ra_tree(current_tree).source
+            current_tree_cost = getattr(current_tree, 'cumulative_cost', None)
         except Exception as e:
             error = str(e)
 
-    return render_template('index.html', sql=sql, dot_src=dot_src, error=error)
+    return render_template('index.html', sql=sql, dot_src=dot_src, error=error, current_tree_cost=current_tree_cost)
 
 @app.route('/joinopt', methods=['POST'])
 def joinopt():
@@ -113,6 +115,7 @@ def joinopt():
     sql = request.form.get('sql', '')
     dot_src = None
     error = None
+    current_tree_cost = None
 
     try:
         # Perform join optimization on the RA tree
@@ -125,10 +128,11 @@ def joinopt():
         estimate_cost(current_tree, table_stats)
 
         dot_src = visualize_ra_tree(current_tree).source
+        current_tree_cost = getattr(current_tree, 'cumulative_cost', None)
     except Exception as e:
         error = str(e)
 
-    return render_template('index.html', sql=sql, dot_src=dot_src, error=error)
+    return render_template('index.html', sql=sql, dot_src=dot_src, error=error, current_tree_cost=current_tree_cost)
 
 
 @app.route('/pushdown', methods=['POST'])
@@ -136,6 +140,7 @@ def pushdown():
     sql = request.form.get('sql', '')
     dot_src = None
     error = None
+    current_tree_cost = None
 
     try:
         # push down selections in the RA tree
@@ -147,10 +152,11 @@ def pushdown():
         estimate_cost(current_tree, table_stats)
 
         dot_src = visualize_ra_tree(current_tree).source
+        current_tree_cost = getattr(current_tree, 'cumulative_cost', None)
     except Exception as e:
         error = str(e)
 
-    return render_template('index.html', sql=sql, dot_src=dot_src, error=error)
+    return render_template('index.html', sql=sql, dot_src=dot_src, error=error, current_tree_cost=current_tree_cost)
 
 @app.route('/cost', methods=['POST'])
 def cost():
@@ -212,9 +218,10 @@ def get_schema_graph():
     cursor = conn.cursor()
     dot_lines = [
         "digraph Schema {",
-        "rankdir=LR;", 
-        "node [shape=box, style=filled, color=lightblue, fontname=Consolas];",  
-        "edge [fontname=Consolas, color=gray];" 
+        "rankdir=LR;",
+        "graph [splines=true, pad=0.5];",
+        "node [shape=plain, fontname=Consolas];",
+        "edge [fontname=Consolas, color=\"#6366f1\", arrowsize=0.7, penwidth=1.4];"
     ]
 
     data_type_mapping = {
@@ -248,12 +255,48 @@ def get_schema_graph():
                 tables[table_name] = []
             tables[table_name].append(f"{column_name} ({friendly_data_type})")
 
-        for table_name, columns in tables.items():
-            dot_lines.append(
-                f'{table_name} [label=<<B>{table_name.upper()}</B><BR ALIGN="LEFT" />' +
-                "<BR ALIGN=\"LEFT\" />".join(columns) +
-                '>, fillcolor=lightyellow];'
-            )
+        # Primary key columns per table
+        cursor.execute("""
+            SELECT tc.table_name, kcu.column_name
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name
+             AND tc.table_schema = kcu.table_schema
+            WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema='public';
+        """)
+        pk_rows = cursor.fetchall()
+        table_to_pk = {}
+        for t, c in pk_rows:
+            table_to_pk.setdefault(t, set()).add(c)
+
+        # Row counts using pg_stat_all_tables
+        cursor.execute("""
+            SELECT relname AS table_name, n_live_tup AS row_count
+            FROM pg_stat_all_tables WHERE schemaname='public';
+        """)
+        row_counts = {t: rc for t, rc in cursor.fetchall()}
+
+        # Build HTML-like labels for each table
+        for table_name, cols in tables.items():
+            header = f"<TR><TD COLSPAN='2' ALIGN='LEFT' BALIGN='LEFT' BGCOLOR='\"#0d6efd\"'><FONT COLOR='white'><B>{table_name.upper()}</B></FONT></TD></TR>"
+            body_rows = []
+            for idx, col in enumerate(cols):
+                # Extract name and type back from text
+                try:
+                    col_name, type_part = col.split(' (')
+                    type_part = type_part.rstrip(')')
+                except ValueError:
+                    col_name = col
+                    type_part = ''
+                is_pk = col_name in table_to_pk.get(table_name, set())
+                badge = "<FONT COLOR='\"#16a34a\"'><B> PK</B></FONT>" if is_pk else ""
+                zebra = "#ffffff" if idx % 2 == 0 else "#f8fafc"
+                row_html = f"<TR><TD ALIGN='LEFT' BGCOLOR='\"{zebra}\"'>{col_name}{badge}</TD><TD ALIGN='RIGHT' BGCOLOR='\"{zebra}\"'><FONT COLOR='gray'>{type_part}</FONT></TD></TR>"
+                body_rows.append(row_html)
+
+            footer = f"<TR><TD COLSPAN='2' ALIGN='LEFT' BGCOLOR='\"#eef2ff\"'><FONT COLOR='\"#3730a3\"'>rows: {row_counts.get(table_name, 0)}</FONT></TD></TR>"
+            html_label = "<<TABLE BORDER='0' CELLBORDER='1' COLOR='\"#e5e7eb\"' CELLSPACING='0' CELLPADDING='6'>" + header + ''.join(body_rows) + footer + "</TABLE>>"
+            dot_lines.append(f"{table_name} [label={html_label}];")
 
         cursor.execute("""
             SELECT
@@ -275,7 +318,7 @@ def get_schema_graph():
 
         for source_table, source_column, target_table, target_column in relationships:
             dot_lines.append(
-                f'{source_table} -> {target_table} [label="{source_column} -> {target_column}", color=blue];'
+                f'{source_table} -> {target_table} [label="{source_column}→{target_column}"];'
             )
 
     except Exception as e:

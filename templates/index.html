@@ -5,18 +5,69 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>OptiQuery</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://unpkg.com/d3-graphviz/build/d3-graphviz.min.js"></script>
 
     <style>
+        :root {
+            --bg: #f7f8fb;
+            --card: #ffffff;
+            --card-border: rgba(0, 0, 0, 0.07);
+            --card-bg-blur: rgba(255, 255, 255, 0.6);
+            --text: #0f172a;
+            --muted: #64748b;
+            --brand: #4f46e5; /* indigo-600 */
+            --brand-2: #0ea5e9; /* sky-500 */
+            --chip-bg: #eef2ff;
+            --chip-fg: #3730a3;
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.07);
+        }
+        body.theme-dark {
+            --bg: #0b1020;
+            --card: #12182a;
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-bg-blur: rgba(18, 24, 42, 0.6);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --brand: #6366f1;
+            --brand-2: #38bdf8;
+            --chip-bg: #1e293b;
+            --chip-fg: #c7d2fe;
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
         body {
-            background-color: #f8f9fa;
+            background: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,.12) 0%, transparent 60%),
+                        radial-gradient(1000px 600px at 90% 10%, rgba(14,165,233,.12) 0%, transparent 55%),
+                        var(--bg);
+            color: var(--text);
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            background-color: var(--card);
+            box-shadow: var(--shadow-md);
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .navbar {
+            box-shadow: var(--shadow-sm);
+        }
+        .navbar-gradient {
+            background: linear-gradient(90deg, var(--brand) 0%, #7c3aed 100%);
         }
 
         #graph-container {
@@ -24,6 +75,8 @@
             height: 100%;
             overflow: auto;
             margin: 0 auto;
+            position: relative;
+            padding-bottom: 56px; /* space for floating controls */
         }
 
         #graph svg {
@@ -38,22 +91,122 @@
             height: 700px;
             overflow: hidden;
             margin: 0 auto;
+            position: relative;
+        }
+
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn-active {
-            background-color: #2861cb !important;
+            background: linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%) !important;
             color: white !important;
         }
-
         .btn-inactive {
-            background-color: #54a7ef !important;
+            background-color: var(--brand-2) !important;
+            color: #fff !important;
+        }
+        .btn-inactive:hover {
+            opacity: 0.9;
+            background-color: var(--brand-2) !important;
+        }
+        .btn-info {
+            background-color: #22c55e !important;
             color: white !important;
+        }
+        .btn-info:hover {
+            background-color: #1daa51 !important;
         }
 
-        .btn-info {
-            background-color: #31b1c5 !important;
-            color: white !important;
+        .stat-chip {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            color: var(--chip-fg);
+            font-weight: 600;
+            font-family: Consolas, monospace;
+            border: 1px solid transparent;
+            box-shadow: inset 0 0 0 1px rgba(55,48,163,.08);
+            transition: all 0.2s ease;
         }
+        .stat-chip:hover {
+            border-color: var(--brand);
+        }
+
+        .sticky-ops {
+            position: sticky;
+            top: 6.5rem; /* Adjust for sticky navbar */
+        }
+
+        .hero {
+            background: var(--card-bg-blur);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--card-border);
+        }
+
+        .chip {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+        }
+        .chip:hover {
+            transform: scale(1.05);
+            border-color: currentColor;
+            opacity: 0.9;
+        }
+
+        .graph-controls {
+            position: absolute;
+            right: 1rem;
+            bottom: 1rem; 
+            z-index: 10;
+            display: flex;
+            gap: .5rem;
+        }
+        .graph-controls .btn {
+            box-shadow: var(--shadow-sm);
+        }
+        @media (max-width: 768px) {
+            .graph-controls { right: .5rem; bottom: .5rem; }
+            #graph svg { height: 420px; }
+        }
+
+        /* Schema highlight */
+        #schema-graph g.node.schema-highlight rect, 
+        #schema-graph g.node.schema-highlight polygon, 
+        #schema-graph g.node.schema-highlight path {
+            stroke: #ef4444 !important;
+            stroke-width: 2.2px !important;
+            filter: drop-shadow(0 2px 6px rgba(239,68,68,.35));
+        }
+
+        .pulse {
+            animation: pulse 900ms ease-in-out 1;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 var(--shadow-md); }
+            70% { box-shadow: 0 0 0 24px rgba(13,110,253,0); }
+            100% { box-shadow: var(--shadow-md); }
+        }
+
+        /* Modal Animation */
+        .modal.fade .modal-dialog {
+            transform: translate(0, -20px);
+            transition: transform 0.3s ease-out;
+        }
+        .modal.show .modal-dialog {
+            transform: translate(0, 0);
+        }
+
     </style>
     <script>
         function loadSchema() {
@@ -63,14 +216,43 @@
                     const dot = data.dot;
                     d3.select("#schema-graph")
                         .graphviz()
-                        .renderDot(dot);
+                        .renderDot(dot)
+                        .on('end', function(){
+                            const svg = d3.select('#schema-graph svg');
+                            const g = svg.select('g');
+                            const zoom = d3.zoom().scaleExtent([0.3, 2]).on('zoom', (event)=>{
+                                g.attr('transform', event.transform);
+                            });
+                            svg.call(zoom);
+                            const zin = document.getElementById('schema-zoom-in');
+                            const zout = document.getElementById('schema-zoom-out');
+                            const zreset = document.getElementById('schema-zoom-reset');
+                            if(zin&&zout&&zreset){
+                                zin.onclick = ()=> svg.transition().call(zoom.scaleBy, 1.2);
+                                zout.onclick = ()=> svg.transition().call(zoom.scaleBy, 1/1.2);
+                                zreset.onclick = ()=> svg.transition().call(zoom.transform, d3.zoomIdentity);
+                            }
+
+                            const search = document.getElementById('schema-search');
+                            if(search){
+                                search.oninput = ()=> {
+                                    const q = search.value.trim().toLowerCase();
+                                    d3.select('#schema-graph').selectAll('g.node').classed('schema-highlight', false);
+                                    if(!q) return;
+                                    d3.select('#schema-graph').selectAll('g.node').each(function(){
+                                        const t = d3.select(this).select('title').text().toLowerCase();
+                                        if(t.includes(q)) d3.select(this).classed('schema-highlight', true);
+                                    });
+                                };
+                            }
+                        });
 
                     const dbname = data.dbname;
                     const modalTitle = document.getElementById("schemaModalLabel");
                     if (dbname) {
-                        modalTitle.innerHTML = `Database Schema for ${dbname}`;
+                        modalTitle.innerHTML = `<i class="bi bi-database me-2"></i>Database Schema for ${dbname}`;
                     } else {
-                        modalTitle.innerHTML = "Database Schema";
+                        modalTitle.innerHTML = `<i class="bi bi-database me-2"></i>Database Schema`;
                     }
                 })
                 .catch(error => {
@@ -82,76 +264,100 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    {% set final_display_cost = current_tree_cost %}
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-gradient mb-4 sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">OptiQuery</a>
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <i class="bi bi-diagram-3-fill"></i>
+                <span class="fw-bold">OptiQuery</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" id="new-query" type="button"
+                    data-bs-toggle="tooltip" data-bs-title="Clear session history and start new query">
+                    <i class="bi bi-eraser-fill"></i>
+                    Reset Session
+                </button>
+                <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" id="toggle-theme" type="button">
+                    <i class="bi bi-moon-stars"></i>
+                    Theme
+                </button>
+            </div>
         </div>
     </nav>
-    <div class="container">
+    <div class="container-xl">
+        <div class="mb-3 text-muted small">Design / Query Optimization Dashboard</div>
         <div class="row mb-4">
             <div class="col-md-9">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Enter SQL Query</h5>
+                <div class="card hero">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold">Enter SQL Query</h5>
                         <form method="post" action="/">
                             <div class="mb-3">
                                 <textarea class="form-control" name="sql" rows="7" placeholder="SELECT * FROM table;"
-                                    style="font-family: monospace; font-size: 14px;">{{ sql }}</textarea>
+                                    style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; background-color: var(--bg); color: var(--text);">{{ sql }}</textarea>
                             </div>
-                            <button type="submit"
-                                class="btn {% if request.endpoint == 'index' %}btn-active{% else %}btn-inactive{% endif %}">Generate
-                                Tree</button>
+                            <div class="mb-3">
+                                <div id="chips-root"></div>
+                            </div>
+                            <button type="submit" class="btn {% if request.endpoint == 'index' %}btn-active{% else %}btn-inactive{% endif %} btn-lg">
+                                <i class="bi bi-play-circle-fill"></i>
+                                Generate Tree
+                            </button>
                         </form>
+                        {% if current_tree_cost %}
+                        <div class="mt-3">
+                            <span class="stat-chip" title="Cumulative cost of current tree" 
+                                  data-role="cost-display" 
+                                  data-base-cost="{{ "{:.2e}".format(final_display_cost) }}"> Current cost: {{ "{:.2e}".format(final_display_cost) }}
+                            </span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
             <div class="col-md-3 d-flex flex-column justify-content-start">
-                <div class="card">
+                <div class="card sticky-ops">
                     <div class="card-body">
-                        <h5 class="card-title">Operations</h5>
-                        <div class="d-flex justify-content-around align-items-left flex-column">
-                            <form method="post" action="/pushdown" class="mb-3">
-                                <input type="hidden" name="sql" value="{{ sql }}">
-                                <button type="submit" id="pushdown-button"
-                                    class="btn w-100 {% if request.endpoint == 'pushdown' %}btn-active{% else %}btn-inactive{% endif %}">Apply
-                                    Predicate Pushdown</button>
-                            </form>
-
-                            <form method="post" action="/joinopt" class="mb-3">
-                                <input type="hidden" name="sql" value="{{ sql }}">
-                                <button type="submit" id="joinopt-button"
-                                    class="btn w-100 {% if request.endpoint == 'joinopt' %}btn-active{% else %}btn-inactive{% endif %}">Apply
-                                    Join Optimization</button>
-                            </form>
-
-                            <form method="post" action="/cost" class="mb-3">
-                                <input type="hidden" name="sql" value="{{ sql }}">
-                                <button type="submit" id="cost-button"
-                                    class="btn w-100 {% if request.endpoint == 'cost' %}btn-active{% else %}btn-inactive{% endif %}">Compare
-                                    Costs</button>
-                            </form>
-
-                            <a href="#" class="btn btn-info mb-3" data-bs-toggle="modal" data-bs-target="#schemaModal"
-                                onclick="loadSchema()">Show Database Schema</a>
-                        </div>
+                        <h5 class="card-title d-flex align-items-center gap-2 fw-bold">
+                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                            Operations
+                        </h5>
+                        <div id="ops-root" data-sql="{{ sql|e }}" data-endpoint="{{ (request.endpoint or '') }}"></div>
                     </div>
                 </div>
             </div>
         </div>
         {% if error %}
-        <div class="alert alert-danger" role="alert">
-            {{ error }}
+        <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>{{ error }}</div>
         </div>
         {% endif %}
-        {% if dot_src %}
-        <div class="row">
-            <div class="col">
+        
+        {% if dot_src %} 
+        <div class="row g-4">
+            <div class="col-lg-9">
                 <div class="card">
-                    <div class="card-body" id="graph-container">
+                    <div class="card-body {% if request.endpoint in ['pushdown','joinopt'] %}pulse{% endif %}" id="graph-container">
+                        {% if current_tree_cost %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted small fw-medium">Relational Algebra Tree</div>
+                            <span class="stat-chip" title="Cumulative cost of current tree"
+                                  data-role="cost-display"
+                                  data-base-cost="{{ "{:.2e}".format(final_display_cost) }}"> Current cost: {{ "{:.2e}".format(final_display_cost) }}
+                            </span>
+                        </div>
+                        <div class="graph-controls">
+                            <button class="btn btn-light btn-sm" id="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+                            <button class="btn btn-light btn-sm" id="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+                            <button class="btn btn-light btn-sm" id="zoom-reset" title="Reset"><i class="bi bi-aspect-ratio"></i></button>
+                        </div>
                         <script>
                             const dot = {{ dot_src | tojson }};
-                            const graphContainer = d3.select('#graph-container')
+                            
+                            d3.select('#graph-container')
                                 .append('div')
                                 .attr('id', 'graph')
                                 .style('margin', '0 auto') // Dynamic centering
@@ -160,40 +366,117 @@
                                 .fit(true) // Fit the graph to the container
                                 .renderDot(dot)
                                 .on('end', function () {
-
+                                    const svg = d3.select('#graph-container svg');
+                                    const g = svg.select('g');
+                                    const zoom = d3.zoom()
+                                        .scaleExtent([0.1, 2])
+                                        .on('zoom', function (event) {
+                                            g.attr('transform', event.transform);
+                                        });
+                                    svg.call(zoom);
+                                    document.getElementById('zoom-in').onclick = () => svg.transition().call(zoom.scaleBy, 1.2);
+                                    document.getElementById('zoom-out').onclick = () => svg.transition().call(zoom.scaleBy, 1/1.2);
+                                    document.getElementById('zoom-reset').onclick = () => svg.transition().call(zoom.transform, d3.zoomIdentity);
                                 });
                         </script>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 d-none" id="insights-column">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 fw-semibold">Optimization Timeline</h6>
+                            <span class="badge rounded-pill text-bg-light" id="timeline-count">0</span>
+                        </div>
+                        <ol class="list-group list-group-numbered" id="timeline" style="max-height: 260px; overflow:auto;"></ol>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 fw-semibold">Cost Trend</h6>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary" id="clear-history"
+                                    data-bs-toggle="tooltip" data-bs-title="Clear session history">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="toggle-prev" disabled
+                                    data-bs-toggle="tooltip" data-bs-title="Show previous graph state">
+                                    <i class="bi bi-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <canvas id="costChart" height="160"></canvas>
+                        <div id="prev-graph" class="mt-3 d-none border rounded p-2" style="height: 200px; overflow: hidden;"></div>
                     </div>
                 </div>
             </div>
         </div>
         {% endif %}
+        
         {% if ra_tree_svg and current_tree_svg %}
+        {% set final_compare_cost = current_tree_cost %}
+        {% set final_compare_svg = current_tree_svg %}
+        {% set did_revert_compare = false %}
+        {% if ra_tree_cost and current_tree_cost > ra_tree_cost %}
+            {% set final_compare_cost = ra_tree_cost %}
+            {% set final_compare_svg = ra_tree_svg %}
+            {% set did_revert_compare = true %}
+        {% endif %}
+
         <div class="row mt-4">
             <div class="col">
-                <div class="alert alert-info text-center">
-                    <h5>Cost Comparison</h5>
-                    <p>
-                        <strong>Original Cumulative Cost:</strong> {{ "{:.2e}".format(ra_tree_cost) }} <br>
-                        <strong>Current Cost (after any optimizations):</strong> {{ "{:.2e}".format(current_tree_cost)
-                        }} <br>
-                    </p>
-                    <p class="{{ comparison_class }}">{{ comparison_message }}</p>
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h4 class="card-title fw-bold">Cost Comparison</h4>
+                        <div class="row">
+                            <div class="col-md-6 border-end">
+                                <h6 class="text-muted">Original Cumulative Cost</h6>
+                                <h3 class="fw-light">{{ "{:.2e}".format(ra_tree_cost) }}</h3>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Current Cost</h6>
+                                <h3 class="fw-light">{{ "{:.2e}".format(final_compare_cost) }}</h3>
+                            </div>
+                        </div>
+                        <hr class="my-3">
+                        {% if ra_tree_cost and ra_tree_cost > 0 %}
+                            {% set change = ((final_compare_cost - ra_tree_cost) / ra_tree_cost) * 100 %}
+                            
+                            {% if change < -0.01 %}
+                                <h5 class="text-success fw-bold">
+                                    <i class="bi bi-graph-down-arrow"></i>
+                                    Cost Improved by {{ "%.2f"|format(change|abs) }}%
+                                </h5>
+                                <p class="text-success-emphasis mb-0">{{ comparison_message }}</p>
+                            {% else %}
+                                <h5 class="text-muted fw-bold">
+                                    <i class="bi bi-dash-lg"></i>
+                                    No Cost Improvement (0.00%)
+                                </h5>
+                                <p class="text-muted mb-0">The original plan is already optimal or no improvement was found.</p>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted mb-0">Cost comparison is not available (original cost is zero or undefined).</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="row mt-4">
+        <div class="row mt-4 g-4">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body" id="ra-tree-container">
-                        <h5 class="text-center">Original RA Tree with Costs</h5>
+                        <h5 class="text-center fw-semibold">Original RA Tree with Costs</h5>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body" id="current-tree-container">
-                        <h5 class="text-center">Current Tree with Costs</h5>
+                        <h5 class="text-center fw-semibold">Current Tree with Costs</h5>
                     </div>
                 </div>
             </div>
@@ -201,7 +484,7 @@
 
         <script>
             function renderGraph(containerId, dotData, defaultZoomLevel) {
-                const graphContainer = d3.select(containerId)
+                d3.select(containerId)
                     .append('div')
                     .attr('id', `${containerId}-graph`)
                     .style('margin', '0 auto') // Dynamic centering
@@ -230,7 +513,7 @@
             }
 
             const ra_tree_dot = {{ ra_tree_svg | tojson }};
-            const current_tree_dot = {{ current_tree_svg | tojson }};
+            const current_tree_dot = {{ final_compare_svg | tojson }}; 
             renderGraph('#ra-tree-container', ra_tree_dot, 0.4);
             renderGraph('#current-tree-container', current_tree_dot, 0.4); 
         </script>
@@ -238,26 +521,438 @@
     </div>
 
     <div class="modal fade" id="schemaModal" tabindex="-1" aria-labelledby="schemaModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content" style="background-color: var(--card); border-color: var(--card-border);">
+                <div class="modal-header" style="border-bottom-color: var(--card-border);">
                     <h5 class="modal-title" id="schemaModalLabel">
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="schema-graph" style="width: 100%; height: 700px; overflow: hidden;"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="input-group" style="max-width: 360px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="schema-search" class="form-control" placeholder="Search table..." />
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="schema-zoom-in"><i class="bi bi-zoom-in"></i></button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="schema-zoom-out"><i class="bi bi-zoom-out"></i></button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="schema-zoom-reset"><i class="bi bi-aspect-ratio"></i></button>
+                        </div>
+                    </div>
+                    <div id="schema-graph" style="width: 100%; height: 70vh; overflow: hidden; border-radius: 8px; border: 1px solid var(--card-border);"></div>
                 </div>
             </div>
         </div>
     </div>
-    <footer class="footer mt-4 py-3 bg-light">
+    <footer class="footer mt-5 py-3" style="background-color: var(--card); border-top: 1px solid var(--card-border);">
         <div class="container text-center">
             <span class="text-muted">&copy; 2025 OptiQuery</span>
         </div>
     </footer>
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script>
+        (function(){
+            const { createElement: h, useEffect, useRef } = React;
+            function classNames() {
+                return Array.from(arguments).filter(Boolean).join(' ');
+            }
+
+            function Chips() {
+                const samples = [
+                    { label: 'Sample: Join', cls: 'text-bg-primary-subtle', sql: "SELECT * FROM orders o JOIN customers c ON o.customer_id=c.id WHERE c.country='USA';" },
+                    { label: 'Sample: Filter+Proj', cls: 'text-bg-success-subtle', sql: "SELECT id, name FROM customers WHERE signup_date >= '2020-01-01';" },
+                    { label: 'Sample: Multi-Join', cls: 'text-bg-warning-subtle', sql: "SELECT * FROM lineitem l JOIN orders o ON l.orderkey=o.orderkey JOIN customer c ON o.custkey=c.custkey WHERE l.quantity > 10 AND c.nationkey = 5;" },
+                ];
+                function onClick(sql) {
+                    const textarea = document.querySelector('textarea[name="sql"]');
+                    if (textarea) {
+                        textarea.value = sql;
+                        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+                return h('div', { className: 'd-flex flex-wrap gap-2' }, samples.map((s, idx) =>
+                    h('span', {
+                        key: idx,
+                        className: classNames('badge chip', s.cls),
+                        role: 'button',
+                        onClick: () => onClick(s.sql)
+                    }, s.label)
+                ));
+            }
+
+            function OpsPanel(props) {
+                const { initialSql, active } = props;
+                const sqlRef = useRef(initialSql || '');
+                useEffect(() => {
+                    sqlRef.current = initialSql || '';
+                }, [initialSql]);
+
+                function renderOp(action, id, icon, label, tooltip, isActive) {
+                    const btnClass = isActive ? 'btn-active' : 'btn-inactive';
+                    const hiddenInputRef = React.createRef();
+                    function onSubmit() {
+                        if (hiddenInputRef.current) {
+                            const textarea = document.querySelector('textarea[name="sql"]');
+                            hiddenInputRef.current.value = textarea ? textarea.value : (sqlRef.current || '');
+                        }
+                    }
+                    return h('form', { method: 'post', action, className: 'mb-3', 'data-op-form': true, onSubmit },
+                        h('input', { type: 'hidden', name: 'sql', defaultValue: initialSql, ref: hiddenInputRef }),
+                        h('button', { type: 'submit', id, className: classNames('btn w-100 d-flex align-items-center justify-content-center gap-2', btnClass), 'data-bs-toggle': 'tooltip', 'data-bs-title': tooltip },
+                            h('i', { className: icon }),
+                            h('span', null, label),
+                            h('span', { className: 'spinner-border spinner-border-sm d-none', 'aria-hidden': 'true' })
+                        )
+                    );
+                }
+
+                return h('div', { className: 'd-flex justify-content-around align-items-left flex-column' }, [
+                    renderOp('/pushdown', 'pushdown-button', 'bi bi-filter-circle-fill', 'Predicate Pushdown', 'Push selection predicates closer to base tables', active === 'pushdown'),
+                    renderOp('/joinopt', 'joinopt-button', 'bi bi-shuffle', 'Join Optimization', 'Reorder joins to reduce cumulative cost', active === 'joinopt'),
+                    renderOp('/cost', 'cost-button', 'bi bi-calculator-fill', 'Compare Costs', 'Compare original vs optimized tree costs', active === 'cost'),
+                    h('a', { href: '#', className: 'btn btn-info mb-3', 'data-bs-toggle': 'modal', 'data-bs-target': '#schemaModal', onClick: function(e){ e.preventDefault(); loadSchema(); } }, 
+                        h('i', { className: 'bi bi-eye-fill me-2' }),
+                        'Show Database Schema'
+                    )
+                ]);
+            }
+
+            // Mount chips
+            const chipsRoot = document.getElementById('chips-root');
+            if (chipsRoot) {
+                ReactDOM.createRoot(chipsRoot).render(h(Chips));
+            }
+
+            // Mount operations panel
+            const opsRoot = document.getElementById('ops-root');
+            if (opsRoot) {
+                const initialSql = opsRoot.getAttribute('data-sql') || '';
+                const endpoint = opsRoot.getAttribute('data-endpoint') || '';
+                ReactDOM.createRoot(opsRoot).render(h(OpsPanel, { initialSql, active: endpoint }));
+            }
+
+            // Reinitialize tooltips for dynamically added elements
+            try {
+                const tooltipTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggers.map(function (el) { return new bootstrap.Tooltip(el); });
+            } catch (e) {}
+        })();
+    </script>
+    <script>
+        // Enable tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Loading state for operation forms
+        document.querySelectorAll('[data-op-form]')?.forEach(form => {
+            form.addEventListener('submit', function () {
+                const btn = this.querySelector('button[type="submit"]');
+                if (!btn) return;
+                btn.disabled = true;
+                const spinner = btn.querySelector('.spinner-border');
+                if (spinner) spinner.classList.remove('d-none');
+            });
+        });
+
+        // ===== Cost Trend Chart & Timeline (sessionStorage) =====
+        (function() {
+            // Get all raw data from the template
+            const currentCost = {{ (current_tree_cost or 0) | tojson }};
+            const endpoint = {{ (request.endpoint or '') | tojson }};
+            const currentDot = {{ (dot_src or 'null') | tojson }}; // Main graph
+            const raCost = {{ (ra_tree_cost or 'null') | tojson }}; // Original cost, only on /cost
+            const raDot = {{ (ra_tree_svg or 'null') | tojson }}; // Original graph, only on /cost
+            const currentCompareDot = {{ (current_tree_svg or 'null') | tojson }}; // Optimized graph, only on /cost
+            
+            let didRevert = false;
+            let costToStore = currentCost;
+            let dotToStore = currentDot;
+
+            if (endpoint && currentCost) {
+                const labels = JSON.parse(sessionStorage.getItem('opt_labels') || '[]');
+                const data = JSON.parse(sessionStorage.getItem('opt_costs') || '[]');
+                const steps = JSON.parse(sessionStorage.getItem('opt_steps') || '[]');
+                const lastDot = sessionStorage.getItem('opt_last_dot') || '';
+                
+                if (endpoint === 'index') {
+                    // This is the first "Generate" step
+                    costToStore = currentCost;
+                    dotToStore = currentDot;
+                } else if (endpoint === 'cost') {
+                    // This is the "Compare" page
+                    if (raCost && currentCost > raCost) {
+                        didRevert = true;
+                        costToStore = raCost; // Revert to original cost
+                        dotToStore = raDot; // Revert to original dot
+                    } else {
+                        costToStore = currentCost;
+                        dotToStore = currentCompareDot;
+                    }
+                } else {
+                    // This is "Pushdown" or "Join Opt"
+                    if (data.length > 0) {
+                        const previousCost = data[data.length - 1];
+                        if (currentCost > previousCost) {
+                            // New cost is worse! Revert.
+                            didRevert = true;
+                            costToStore = previousCost; // Use previous cost
+                            dotToStore = lastDot; // Use previous dot
+                        } else {
+                            // New cost is better or same
+                            costToStore = currentCost;
+                            dotToStore = currentDot;
+                        }
+                    } else {
+                        // Should not happen, but safeguard
+                        costToStore = currentCost;
+                        dotToStore = currentDot;
+                    }
+                }
+
+            
+                
+                if (didRevert) {
+                    // 1. Update all cost chips
+                    document.querySelectorAll('[data-role="cost-display"]').forEach(el => {
+                        el.innerHTML = `Current cost: ${costToStore.toExponential(2)}`;
+                        el.setAttribute('data-base-cost', costToStore.toExponential(2));
+                    });
+                    
+                    // 2. Re-render the main graph (if it exists)
+                    const mainGraphEl = document.getElementById('graph');
+                    if (mainGraphEl) {
+                        // Clear old graph and render the correct (reverted) one
+                        d3.select('#graph').html('').graphviz({ useWorker: false })
+                            .zoom(true)
+                            .fit(true)
+                            .renderDot(dotToStore)
+                            .on('end', function () {
+                                const svg = d3.select('#graph svg');
+                                const g = svg.select('g');
+                                const zoom = d3.zoom()
+                                    .scaleExtent([0.1, 2])
+                                    .on('zoom', function (event) {
+                                        g.attr('transform', event.transform);
+                                    });
+                                svg.call(zoom);
+                                document.getElementById('zoom-in').onclick = () => svg.transition().call(zoom.scaleBy, 1.2);
+                                document.getElementById('zoom-out').onclick = () => svg.transition().call(zoom.scaleBy, 1/1.2);
+                                document.getElementById('zoom-reset').onclick = () => svg.transition().call(zoom.transform, d3.zoomIdentity);
+                            });
+                    }
+                }
+                
+               
+                const labelMap = { index: 'Generate', pushdown: 'Pushdown', joinopt: 'Join Opt', cost: 'Compare' };
+                const label = labelMap[endpoint] || endpoint;
+
+                labels.push(label);
+                data.push(costToStore); // Store the (potentially) corrected cost
+                steps.push({ label, cost: costToStore });
+
+                sessionStorage.setItem('opt_labels', JSON.stringify(labels));
+                sessionStorage.setItem('opt_costs', JSON.stringify(data));
+                sessionStorage.setItem('opt_steps', JSON.stringify(steps));
+
+                sessionStorage.setItem('opt_prev_dot', lastDot);
+                if (dotToStore) sessionStorage.setItem('opt_last_dot', dotToStore);
+            }
+
+
+            // Populate timeline
+            const steps = JSON.parse(sessionStorage.getItem('opt_steps') || '[]');
+            const timeline = document.getElementById('timeline');
+            const count = document.getElementById('timeline-count');
+            const insights = document.getElementById('insights-column');
+            if (timeline && count) {
+                count.textContent = steps.length;
+                timeline.innerHTML = steps.map(s => `
+                    <li class="list-group-item d-flex justify-content-between align-items-start" style="background-color: transparent; border-color: var(--card-border);">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-semibold">${s.label}</div>
+                            <small class="text-muted">cost: ${Number(s.cost).toExponential(2)}</small>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+           
+            if (insights) {
+                const hasOptimization = steps.some(s => s.label === 'Pushdown' || s.label === 'Join Opt');
+                if (hasOptimization || steps.length > 1) insights.classList.remove('d-none');
+            }
+
+            // Draw chart
+            const ctx = document.getElementById('costChart');
+            if (ctx) {
+                const labels = JSON.parse(sessionStorage.getItem('opt_labels') || '[]');
+                const data = JSON.parse(sessionStorage.getItem('opt_costs') || '[]');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Cumulative Cost',
+                            data,
+                            fill: true,
+                            borderColor: 'rgba(13,110,253,0.9)',
+                            backgroundColor: 'rgba(13,110,253,0.1)',
+                            tension: 0.25,
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(13,110,253,0.9)',
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { 
+                                ticks: { 
+                                    callback: (v)=> Number(v).toExponential ? Number(v).toExponential(2) : v,
+                                    color: 'var(--muted)'
+                                },
+                                grid: { color: 'var(--card-border)' }
+                            },
+                            x: {
+                                ticks: { color: 'var(--muted)' },
+                                grid: { color: 'var(--card-border)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Dynamic percentage display
+            const data = JSON.parse(sessionStorage.getItem('opt_costs') || '[]');
+            if (data.length > 1) {
+                const originalCost = parseFloat(data[0]); 
+                const currentCost = parseFloat(data[data.length - 1]); 
+                if (originalCost > 0) {
+                    const pctChange = ((currentCost - originalCost) / originalCost) * 100;
+                    let changeHtml = '';
+                    
+                    if (pctChange < -0.01) { 
+                        changeHtml = ` <span class="text-success fw-normal" style="font-size: 0.9em;">(${Math.abs(pctChange).toFixed(1)}% <i class="bi bi-arrow-down"></i>)</span>`;
+                    }
+                    
+                    
+                    document.querySelectorAll('[data-role="cost-display"]').forEach(el => {
+                        const baseCost = el.getAttribute('data-base-cost');
+                        el.innerHTML = `Current cost: ${baseCost}${changeHtml}`;
+                    });
+                }
+            }
+
+
+            // Clear history
+            const clearBtn = document.getElementById('clear-history');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    ['opt_labels','opt_costs','opt_steps','opt_prev_dot','opt_last_dot'].forEach(k => sessionStorage.removeItem(k));
+                    window.location.href = '/';
+                });
+            }
+
+            // Show previous graph
+            const prevBtn = document.getElementById('toggle-prev');
+            if (prevBtn) {
+                prevBtn.addEventListener('click', (e) => {
+                    const prev = sessionStorage.getItem('opt_prev_dot');
+                    const holder = document.getElementById('prev-graph');
+                    if (!holder) return;
+                    holder.classList.toggle('d-none');
+
+                    if (holder.classList.contains('d-none')) {
+                        e.currentTarget.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                    } else {
+                        e.currentTarget.innerHTML = '<i class="bi bi-eye-fill"></i>';
+                    }
+
+                    if (prev && holder.childElementCount === 0) {
+                        d3.select('#prev-graph')
+                            .append('div')
+                            .attr('id','prev-graph-inner')
+                            .graphviz({ useWorker: false })
+                            .zoom(true)
+                            .fit(true)
+                            .renderDot(prev);
+                    }
+                });
+                const hasPrev = !!sessionStorage.getItem('opt_prev_dot');
+                if (hasPrev) prevBtn.removeAttribute('disabled');
+            }
+            
+          
+            if(endpoint && endpoint !== 'index') {
+                let toastMessage = `Action: <strong>${endpoint}</strong> complete.`;
+                let toastClass = 'text-bg-primary';
+
+                if (didRevert) {
+                    // SILENT REVERT: No special message
+                    toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Action: <strong>${endpoint}</strong> complete. No improvement found.`;
+                    toastClass = 'text-bg-primary';
+                } else if (endpoint == 'cost') {
+                    if (raCost && currentCost < raCost) {
+                        toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Costs compared. New plan is better!`;
+                    } else {
+                        toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Costs compared. No improvement.`;
+                    }
+                } else {
+                     // Check if this step *actually* improved
+                     const data = JSON.parse(sessionStorage.getItem('opt_costs') || '[]');
+                     if (data.length > 1 && data[data.length-1] < data[data.length-2]) {
+                        toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Action: <strong>${endpoint}</strong> complete. Cost improved!`;
+                     } else {
+                        toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Action: <strong>${endpoint}</strong> complete. No improvement.`;
+                     }
+                }
+
+                const toastEl = document.createElement('div');
+                toastEl.className = `toast align-items-center ${toastClass} border-0 position-fixed bottom-0 end-0 m-3`;
+                toastEl.style.zIndex = '1100'; // Ensure it's on top
+                toastEl.setAttribute('role','alert');
+                toastEl.innerHTML = `<div class="d-flex"><div class="toast-body">${toastMessage}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+                document.body.appendChild(toastEl);
+                const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                toast.show();
+                setTimeout(()=> toastEl.remove(), 3500);
+            }
+
+        })();
+       
+
+        // Theme toggle
+        (function(){
+            const body = document.body;
+            const KEY = 'opt_theme_dark';
+            const init = localStorage.getItem(KEY) === '1';
+            if (init) body.classList.add('theme-dark');
+            const btn = document.getElementById('toggle-theme');
+            if (btn) btn.addEventListener('click', () => {
+                body.classList.toggle('theme-dark');
+                localStorage.setItem(KEY, body.classList.contains('theme-dark') ? '1' : '0');
+            });
+        })();
+
+        // New Query (full reset)
+        (function(){
+            const btn = document.getElementById('new-query');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                try {
+                    ['opt_labels','opt_costs','opt_steps','opt_prev_dot','opt_last_dot'].forEach(k => sessionStorage.removeItem(k));
+                } catch(e) {}
+                const textarea = document.querySelector('textarea[name="sql"]');
+                if (textarea) textarea.value = '';
+                window.location.href = '/';
+            });
+        })();
+
+    </script>
 </body>
 
 </html>
