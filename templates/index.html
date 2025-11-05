@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>OptiQuery</title>
+    <title>QueryTune</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -270,7 +270,7 @@
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center gap-2" href="/">
                 <i class="bi bi-diagram-3-fill"></i>
-                <span class="fw-bold">OptiQuery</span>
+                <span class="fw-bold">QueryTune</span>
             </a>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" id="new-query" type="button"
@@ -547,7 +547,7 @@
     </div>
     <footer class="footer mt-5 py-3" style="background-color: var(--card); border-top: 1px solid var(--card-border);">
         <div class="container text-center">
-            <span class="text-muted">&copy; 2025 OptiQuery</span>
+            <span class="text-muted">&copy; 2025 QueryTune</span>
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -659,7 +659,7 @@
             });
         });
 
-        // ===== Cost Trend Chart & Timeline (sessionStorage) =====
+    
         (function() {
             // Get all raw data from the template
             const currentCost = {{ (current_tree_cost or 0) | tojson }};
@@ -892,7 +892,7 @@
                 let toastClass = 'text-bg-primary';
 
                 if (didRevert) {
-                    // SILENT REVERT: No special message
+                
                     toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Action: <strong>${endpoint}</strong> complete. No improvement found.`;
                     toastClass = 'text-bg-primary';
                 } else if (endpoint == 'cost') {
@@ -902,7 +902,7 @@
                         toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Costs compared. No improvement.`;
                     }
                 } else {
-                     // Check if this step *actually* improved
+                     
                      const data = JSON.parse(sessionStorage.getItem('opt_costs') || '[]');
                      if (data.length > 1 && data[data.length-1] < data[data.length-2]) {
                         toastMessage = `<i class="bi bi-check-circle-fill me-2"></i>Action: <strong>${endpoint}</strong> complete. Cost improved!`;
@@ -925,7 +925,7 @@
         })();
        
 
-        // Theme toggle
+        
         (function(){
             const body = document.body;
             const KEY = 'opt_theme_dark';
